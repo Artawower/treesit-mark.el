@@ -23,6 +23,16 @@ function baz() {
 }
 const f = () => 1;
 function empty() {}
+watch(a, () => {
+  log(1);
+});
+const tab = make({
+  setup() {
+    onMounted(() => {
+      log(2);
+    });
+  },
+});
 ")
 
 (defun treesit-mark-test-pick (needle)
@@ -59,6 +69,29 @@ function empty() {}
   (skip-unless (treesit-ready-p 'typescript t))
   (treesit-mark-test-with-source
    (should (equal (treesit-mark-test-pick "if (x)") "if (x) {\n    return 2;\n  }"))))
+
+(ert-deftest treesit-mark-selects-top-level-calls-whole ()
+  (skip-unless (treesit-ready-p 'typescript t))
+  (treesit-mark-test-with-source
+   (should (equal (treesit-mark-test-pick "watch(") "watch(a, () => {\n  log(1);\n});"))))
+
+(ert-deftest treesit-mark-selects-top-level-declarations-whole ()
+  (skip-unless (treesit-ready-p 'typescript t))
+  (treesit-mark-test-with-source
+   (should (string-prefix-p "const tab = make({" (treesit-mark-test-pick "const tab")))
+   (should (string-suffix-p "});" (treesit-mark-test-pick "const tab")))))
+
+(ert-deftest treesit-mark-selects-nested-callback-calls-whole ()
+  (skip-unless (treesit-ready-p 'typescript t))
+  (treesit-mark-test-with-source
+   (should (equal (treesit-mark-test-pick "onMounted(")
+                  "onMounted(() => {\n      log(2);\n    });"))))
+
+(ert-deftest treesit-mark-skips-nested-calls ()
+  (skip-unless (treesit-ready-p 'typescript t))
+  (treesit-mark-test-with-source
+   (search-forward "log(1)")
+   (should-not (assq (match-beginning 0) (treesit-mark--targets)))))
 
 (ert-deftest treesit-mark-selects-block-contents ()
   (skip-unless (treesit-ready-p 'typescript t))

@@ -43,10 +43,11 @@ Requires Emacs 29.1+ with tree-sitter and [[https://github.com/abo-abo/avy][avy]
 
 * Customization
 
-| Variable                        | Purpose                                  |
-|---------------------------------+------------------------------------------|
-| =treesit-mark-whole-node-types= | node types selected whole                |
-| =treesit-mark-block-node-types= | node types selected without their braces |
-| =treesit-mark-select-function=  | called with =BEG= and =END= of the node  |
+| Variable                            | Purpose                                    |
+|-------------------------------------+--------------------------------------------|
+| =treesit-mark-whole-node-types=     | node types selected whole                  |
+| =treesit-mark-block-node-types=     | node types selected without their braces   |
+| =treesit-mark-top-level-node-types= | node types selected whole at the top level |
+| =treesit-mark-select-function=      | called with =BEG= and =END= of the node    |
 
 Use =treesit-mark-select-function= when a modal editing package needs its own selection state.

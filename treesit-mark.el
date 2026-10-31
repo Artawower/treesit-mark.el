@@ -5,7 +5,7 @@
 ;; Author: Artur Yaroshenko <artawower@protonmail.com>
 ;; URL: https://github.com/artawower/treesit-mark.el
 ;; Package-Requires: ((emacs "29.1") (avy "0.5.0"))
-;; Version: 0.1.0
+;; Version: 0.3.0
 ;; Keywords: convenience, languages
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -57,6 +57,12 @@
   "Tree-sitter node types selected without their surrounding braces."
   :type '(repeat string))
 
+(defcustom treesit-mark-top-level-node-types
+  '("expression_statement" "lexical_declaration" "variable_declaration"
+    "export_statement")
+  "Tree-sitter node types selected whole when they are at the top level."
+  :type '(repeat string))
+
 (defcustom treesit-mark-select-function #'treesit-mark-select-region
   "Function called with the BEG and END of the chosen node."
   :type 'function)
@@ -66,8 +72,23 @@
   (push-mark beg nil t)
   (goto-char end))
 
-(defun treesit-mark--visible-nodes (types)
-  "Return nodes of TYPES that start in the selected window."
+(defun treesit-mark--top-level-p (node)
+  "Return non-nil if NODE is a direct child of its parser's root."
+  (let ((parent (treesit-node-parent node)))
+    (and parent (null (treesit-node-parent parent)))))
+
+(defun treesit-mark--callback-call-p (node)
+  "Return non-nil if statement NODE is a call taking a function argument."
+  (let* ((call (treesit-node-child node 0 t))
+         (arguments (and call (treesit-node-child-by-field-name call "arguments"))))
+    (and arguments
+         (seq-some (lambda (argument)
+                     (member (treesit-node-type argument) treesit-mark-whole-node-types))
+                   (treesit-node-children arguments t)))))
+
+(defun treesit-mark--visible-nodes (types &optional predicate)
+  "Return nodes of TYPES that start in the selected window.
+When PREDICATE is non-nil, keep only the nodes it accepts."
   (let ((first-visible (window-start))
         (last-visible (window-end nil t))
         (regexp (concat "\\`" (regexp-opt types) "\\'"))
@@ -77,7 +98,8 @@
        (treesit-parser-root-node parser)
        regexp
        (lambda (node)
-         (when (<= first-visible (treesit-node-start node) last-visible)
+         (when (and (<= first-visible (treesit-node-start node) last-visible)
+                    (or (null predicate) (funcall predicate node)))
            (push node nodes)))))
     nodes))
 
@@ -107,7 +129,12 @@ Whole nodes come first and the widest wins at a shared position."
              (cons (treesit-node-start node)
                    (cons (treesit-node-start node) (treesit-node-end node))))
            (seq-sort-by #'treesit-node-end #'>
-                        (treesit-mark--visible-nodes treesit-mark-whole-node-types)))
+                        (append
+                         (treesit-mark--visible-nodes treesit-mark-whole-node-types)
+                         (treesit-mark--visible-nodes treesit-mark-top-level-node-types
+                                                      #'treesit-mark--top-level-p)
+                         (treesit-mark--visible-nodes '("expression_statement")
+                                                      #'treesit-mark--callback-call-p))))
    (mapcar (lambda (node)
              (cons (treesit-node-start node)
                    (treesit-mark--block-inner-bounds node)))
