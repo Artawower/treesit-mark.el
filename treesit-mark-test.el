@@ -33,6 +33,11 @@ const tab = make({
     });
   },
 });
+const items = [
+  {
+    name: \"x\",
+  },
+];
 ")
 
 (defun treesit-mark-test-pick (needle)
@@ -98,6 +103,11 @@ const tab = make({
   (treesit-mark-test-with-source
    (should (equal (treesit-mark-test-pick "{\n    return 2") "return 2;"))
    (should (equal (treesit-mark-test-pick "{}") "{}"))))
+
+(ert-deftest treesit-mark-selects-object-contents-in-array ()
+  (skip-unless (treesit-ready-p 'typescript t))
+  (treesit-mark-test-with-source
+   (should (equal (treesit-mark-test-pick "{\n    name") "name: \"x\","))))
 
 (ert-deftest treesit-mark-uses-the-select-function ()
   (skip-unless (treesit-ready-p 'typescript t))

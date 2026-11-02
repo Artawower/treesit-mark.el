@@ -5,7 +5,7 @@
 ;; Author: Artur Yaroshenko <artawower@protonmail.com>
 ;; URL: https://github.com/artawower/treesit-mark.el
 ;; Package-Requires: ((emacs "29.1") (avy "0.5.0"))
-;; Version: 0.3.0
+;; Version: 0.4.0
 ;; Keywords: convenience, languages
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -52,7 +52,7 @@
   :type '(repeat string))
 
 (defcustom treesit-mark-block-node-types
-  '("statement_block" "class_body" "block" "interface_body" "object_type"
+  '("statement_block" "class_body" "block" "interface_body" "object" "object_type"
     "declaration_list" "field_declaration_list")
   "Tree-sitter node types selected without their surrounding braces."
   :type '(repeat string))
