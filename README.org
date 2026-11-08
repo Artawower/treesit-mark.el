@@ -43,11 +43,24 @@ Requires Emacs 29.1+ with tree-sitter and [[https://github.com/abo-abo/avy][avy]
 
 * Customization
 
-| Variable                            | Purpose                                    |
-|-------------------------------------+--------------------------------------------|
-| =treesit-mark-whole-node-types=     | node types selected whole                  |
-| =treesit-mark-block-node-types=     | node types selected without their braces   |
-| =treesit-mark-top-level-node-types= | node types selected whole at the top level |
-| =treesit-mark-select-function=      | called with =BEG= and =END= of the node    |
+| Variable                       | Purpose                                 |
+|--------------------------------+-----------------------------------------|
+| =treesit-mark-language-rules=  | node types to label for each language   |
+| =treesit-mark-select-function= | called with =BEG= and =END= of the node |
+
+Rules are chosen by the language of each parser, so =<script>= in Vue uses the TypeScript rules.  Languages without rules of their own use the =t= rules.  Built-in rules cover JavaScript, TypeScript, TSX, Python, Rust, Go, Java, C#, C, C++, Lua and Ruby.
+
+Add a language by adding its rules:
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'treesit-mark-language-rules
+             '(kotlin
+               :whole ("function_declaration" "class_declaration" "if_expression")
+               :block ("function_body" "class_body")
+               :call ("call_expression")
+               :call-parent ("statements")))
+#+END_SRC
+
+See the docstring of =treesit-mark-language-rules= for every key.
 
 Use =treesit-mark-select-function= when a modal editing package needs its own selection state.

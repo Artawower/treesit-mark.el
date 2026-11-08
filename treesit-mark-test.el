@@ -64,6 +64,23 @@ const items = [
      (goto-char (point-min))
      ,@body))
 
+(defmacro treesit-mark-test-with-language (language source &rest body)
+  "Run BODY in a displayed buffer with SOURCE parsed as LANGUAGE."
+  (declare (indent 2))
+  `(with-temp-buffer
+     (switch-to-buffer (current-buffer))
+     (insert ,source)
+     (treesit-parser-create ,language)
+     (goto-char (point-min))
+     ,@body))
+
+(defun treesit-mark-test-labelled-p (needle)
+  "Return non-nil if the first match of NEEDLE has a label."
+  (save-excursion
+    (goto-char (point-min))
+    (search-forward needle)
+    (assq (match-beginning 0) (treesit-mark--targets))))
+
 (ert-deftest treesit-mark-selects-definitions-whole ()
   (skip-unless (treesit-ready-p 'typescript t))
   (treesit-mark-test-with-source
@@ -125,6 +142,45 @@ const items = [
              (treesit-mark-select-region beg end))))
      (treesit-mark-test-pick "function empty")
      (should (equal selected "function empty() {}")))))
+
+(ert-deftest treesit-mark-uses-fallback-rules-for-unknown-languages ()
+  (should (eq (treesit-mark--rules 'unknown-language)
+              (alist-get t treesit-mark-language-rules))))
+
+(ert-deftest treesit-mark-selects-python-calls-and-dictionaries ()
+  (skip-unless (treesit-ready-p 'python t))
+  (treesit-mark-test-with-language 'python
+      "def f(x):\n    print(x)\n    x = {\"a\": 1}\n"
+    (should (equal (treesit-mark-test-pick "print(") "print(x)"))
+    (should (equal (treesit-mark-test-pick "{") "\"a\": 1"))
+    (should-not (treesit-mark-test-labelled-p "x = {"))))
+
+(ert-deftest treesit-mark-selects-bare-lua-calls ()
+  (skip-unless (treesit-ready-p 'lua t))
+  (treesit-mark-test-with-language 'lua
+      "function f(x)\n  log(x)\n  local y = g(1)\nend\n"
+    (should (equal (treesit-mark-test-pick "log(") "log(x)"))
+    (should-not (treesit-mark-test-labelled-p "g(1)"))))
+
+(ert-deftest treesit-mark-selects-bare-ruby-calls ()
+  (skip-unless (treesit-ready-p 'ruby t))
+  (treesit-mark-test-with-language 'ruby
+      "def f(x)\n  if x\n    log(1)\n  else\n    log(2)\n  end\n  while x\n    log(3)\n  end\n  begin\n    log(4)\n  ensure\n    log(5)\n  end\n  y = g(1)\nend\n"
+    (dolist (call '("log(1)" "log(2)" "log(3)" "log(4)" "log(5)"))
+      (should (equal (treesit-mark-test-pick call) call)))
+    (should-not (treesit-mark-test-labelled-p "g(1)"))))
+
+(ert-deftest treesit-mark-selects-constructor-statements ()
+  (skip-unless (treesit-ready-p 'typescript t))
+  (treesit-mark-test-with-language 'typescript
+      "function f() {\n  new Foo();\n}\n"
+    (should (equal (treesit-mark-test-pick "new Foo") "new Foo();"))))
+
+(ert-deftest treesit-mark-selects-rust-macro-calls ()
+  (skip-unless (treesit-ready-p 'rust t))
+  (treesit-mark-test-with-language 'rust
+      "fn f() {\n    println!(\"{}\", 1);\n}\n"
+    (should (equal (treesit-mark-test-pick "println!") "println!(\"{}\", 1);"))))
 
 (provide 'treesit-mark-test)
 ;;; treesit-mark-test.el ends here
