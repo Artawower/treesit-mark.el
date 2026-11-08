@@ -5,7 +5,7 @@
 ;; Author: Artur Yaroshenko <artawower@protonmail.com>
 ;; URL: https://github.com/artawower/treesit-mark.el
 ;; Package-Requires: ((emacs "29.1") (avy "0.5.0"))
-;; Version: 0.4.0
+;; Version: 0.5.0
 ;; Keywords: convenience, languages
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -77,14 +77,10 @@
   (let ((parent (treesit-node-parent node)))
     (and parent (null (treesit-node-parent parent)))))
 
-(defun treesit-mark--callback-call-p (node)
-  "Return non-nil if statement NODE is a call taking a function argument."
-  (let* ((call (treesit-node-child node 0 t))
-         (arguments (and call (treesit-node-child-by-field-name call "arguments"))))
-    (and arguments
-         (seq-some (lambda (argument)
-                     (member (treesit-node-type argument) treesit-mark-whole-node-types))
-                   (treesit-node-children arguments t)))))
+(defun treesit-mark--call-statement-p (node)
+  "Return non-nil if statement NODE is a call."
+  (let ((call (treesit-node-child node 0 t)))
+    (and call (treesit-node-child-by-field-name call "arguments"))))
 
 (defun treesit-mark--visible-nodes (types &optional predicate)
   "Return nodes of TYPES that start in the selected window.
@@ -134,7 +130,7 @@ Whole nodes come first and the widest wins at a shared position."
                          (treesit-mark--visible-nodes treesit-mark-top-level-node-types
                                                       #'treesit-mark--top-level-p)
                          (treesit-mark--visible-nodes '("expression_statement")
-                                                      #'treesit-mark--callback-call-p))))
+                                                      #'treesit-mark--call-statement-p))))
    (mapcar (lambda (node)
              (cons (treesit-node-start node)
                    (treesit-mark--block-inner-bounds node)))

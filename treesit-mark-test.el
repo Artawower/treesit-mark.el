@@ -18,6 +18,7 @@
 }
 function baz() {
   if (x) {
+    a = 3;
     return 2;
   }
 }
@@ -73,7 +74,7 @@ const items = [
 (ert-deftest treesit-mark-selects-conditions-whole ()
   (skip-unless (treesit-ready-p 'typescript t))
   (treesit-mark-test-with-source
-   (should (equal (treesit-mark-test-pick "if (x)") "if (x) {\n    return 2;\n  }"))))
+   (should (equal (treesit-mark-test-pick "if (x)") "if (x) {\n    a = 3;\n    return 2;\n  }"))))
 
 (ert-deftest treesit-mark-selects-top-level-calls-whole ()
   (skip-unless (treesit-ready-p 'typescript t))
@@ -92,16 +93,21 @@ const items = [
    (should (equal (treesit-mark-test-pick "onMounted(")
                   "onMounted(() => {\n      log(2);\n    });"))))
 
-(ert-deftest treesit-mark-skips-nested-calls ()
+(ert-deftest treesit-mark-selects-nested-calls-whole ()
   (skip-unless (treesit-ready-p 'typescript t))
   (treesit-mark-test-with-source
-   (search-forward "log(1)")
+   (should (equal (treesit-mark-test-pick "log(1)") "log(1);"))))
+
+(ert-deftest treesit-mark-skips-nested-assignments ()
+  (skip-unless (treesit-ready-p 'typescript t))
+  (treesit-mark-test-with-source
+   (search-forward "a = 3")
    (should-not (assq (match-beginning 0) (treesit-mark--targets)))))
 
 (ert-deftest treesit-mark-selects-block-contents ()
   (skip-unless (treesit-ready-p 'typescript t))
   (treesit-mark-test-with-source
-   (should (equal (treesit-mark-test-pick "{\n    return 2") "return 2;"))
+   (should (equal (treesit-mark-test-pick "{\n    a = 3") "a = 3;\n    return 2;"))
    (should (equal (treesit-mark-test-pick "{}") "{}"))))
 
 (ert-deftest treesit-mark-selects-object-contents-in-array ()
